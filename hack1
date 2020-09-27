@@ -1,0 +1,65 @@
+---
+title: "Hack1"
+author: "Nolan Roosa"
+date: "9/11/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+
+# Answers
+```{r}
+library(ineq)
+
+data <- read.csv("Hack1Data.csv")
+```
+
+```{r}
+#Question 1
+mean(data$JobApplication)
+```
+
+```{r}
+#Question 2
+data <- data[order(data$JobApplication),]
+```
+
+```{r}
+#Question 3
+data$rank <- seq.int(nrow(data))
+```
+
+```{r}
+#Question 4
+data$CumPopShare <- data$rank/nrow(data)
+quantile(data$JobApplication, c(0.9, 0.1))
+#ratio
+quantile(data$JobApplication, 0.9)/quantile(data$JobApplication, 0.1)
+```
+
+```{r}
+#5 total number of apps
+
+sum(data$JobApplication)
+data$CumJob <- cumsum(data$JobApplication)
+data$CumJobShare <- data$CumJob/sum(data$JobApplication)
+```
+
+```{r}
+#6 Plot
+plot(data$CumPopShare, data$CumJobShare, type = "l", col = "blue",
+     lwd = 2, xlab = "Cumulative Share of Population", ylab = 
+       "Cumulative Share of Job Applications") + 
+  abline(a = 0, b = 1, col = 'black', lwd = 2) + 
+  title("Lorenz Curve")
+```
+
+```{r}
+#7 calculate Gini
+Gini(data$JobApplication)
+```
+

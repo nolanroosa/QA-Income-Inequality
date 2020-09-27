@@ -1,0 +1,118 @@
+---
+title: "Homework3"
+author: "Khadija Rashid, Nolan Roosa, Saidah Rahman,"
+date: "9/14/2020"
+output: pdf_document
+---
+### Load data and packages
+```{r package_load}
+library(tidyverse)
+library(ggplot2) # graphics library
+library(ineq)
+library(knitr)
+
+cepr19 <- read.csv('cepr_org_2019.csv', head=T, sep=",")
+cepr79 <- read.csv('cepr_org_1979.csv', head=T, sep=",")
+```
+
+### Question 1 – CDF
+Focus on the data for 2019 and calculate the cumulative income share of each decile. (Remember that each decile represents 10% of the population.) 
+Next, plot the Cumulative Distribution Function of rw_ot. (Hint: make sure to remove data where rw_ot is a missing value)
+```{r}
+#library(tidyverse)
+cepr19 <- read.csv("cepr_org_2019.csv")
+clean_cepr19 <- cepr19[complete.cases(cepr19$rw_ot),]
+
+decile <- quantile(clean_cepr19$rw_ot, prob = seq(0,1, length = 11), type = 5)
+decile
+decile.ecdf = ecdf(decile)
+
+plot.ecdf(decile.ecdf, xlab = "Income", ylab = "Pr(i < Income)", main = "Cumulative Distribution Function of Income share")
+```
+
+### Question 2 – Lorenz curve
+Use the cumulative income shares to draw Lorenz curves for 1979 and 2019 in order to visually compare the income distributions over time.
+a) Draw a line chart with cumulative share of population on the horizontal axis and cumulative share of income on the vertical axis. Make sure to include a chart legend, and label your axes and chart appropriately.
+b) Addastraightlinerepresentingperfectequalitytoeachchart.
+(Hint: If income was shared equally across the population, the bottom 10% of people would have 10% of the total income, the bottom 20% would have 20% of the total income, and so on.)
+```{r}
+#order by rw_ot
+cepr19 <- cepr19[order(cepr19$rw_ot),]
+
+#cumulative income share
+
+cepr19$cum_wages <- cumsum(cepr19$rw_ot)
+cepr19$total_wages <- sum(cepr19$rw_ot, na.rm = TRUE)
+cepr19$income_share <- cepr19$cum_wages/cepr19$total_wages
+cepr19 <- cepr19 %>% mutate(rank = ifelse(income_share <= 1, row_number(), 0)) 
+cepr19 <- cepr19 %>% mutate(cumpop_share = rank/154292)
+
+plot(cepr19$cumpop_share, cepr19$income_share, col = "red",
+     lwd = 0.01, xlab = "Cumulative Share of Population", ylab = "Cumulative Share of Income") +
+  abline(a = 0, b = 1 , col = 'black', lwd = 2) +title("Lorenz Curve: 2019 Data")
+
+legend("bottomright", 
+  legend = c("Line of Equality", "Lorenz Curve"), 
+  col = c(rgb(0.2,0.4,0.1,0.7), 
+  rgb(0.8,0.4,0.1,0.7)), 
+  lty = c(17,19), 
+  bty = "n", 
+  text.col = "black", 
+  horiz = F )
+
+cepr79 <- read.csv("cepr_org_1979.csv")
+clean_cepr79 <- cepr79[complete.cases(cepr79$rw_ot),]
+cepr79 <- cepr79[order(cepr79$rw_ot),]
+cepr79$cum_wages <- cumsum(cepr79$rw_ot)
+cepr79$total_wages <- sum(cepr79$rw_ot, na.rm = TRUE)
+cepr79$income_share <- cepr79$cum_wages/cepr79$total_wages
+cepr79 <- cepr79 %>% mutate(rank = ifelse(income_share <= 1, row_number(), 0)) 
+cepr79 <- cepr79 %>% mutate(cumpop_share = rank/171510)
+
+plot(cepr79$cumpop_share, cepr79$income_share, col = "red",
+     lwd = 0.01, xlab = "Cumulative Share of Population", ylab = "Cumulative Share of Income") +
+  abline(a = 0, b = 1 , col = 'black', lwd = 2) +title("Lorenz Curve: 1979 Data")
+
+legend("bottomright", 
+  legend = c("Line of Equality", "Lorenz Curve"), 
+  col = c(rgb(0.2,0.4,0.1,0.7), 
+  rgb(0.8,0.4,0.1,0.7)), 
+  lty = c(17,19), 
+  bty = "n", 
+  text.col = "black", 
+  horiz = F )
+```
+
+### Question 3 - percentile ratios
+Compute the following ratios for data of 2019:
+a) 90/10 ratio = the ratio of Decile 10 income to Decile 1 income
+b) 90/50 ratio = the ratio of Decile 10 income to Decile 5 income (the median)
+c) 50/10 ratio = the ratio of Decile 5 income (the median) to Decile 1 income.
+For each of these ratios, explain why policymakers might want to compare these two deciles in the income distribution.
+```{r}
+ratio9_1 <- quantile(cepr19$rw_ot, 1, na.rm = TRUE)/quantile(cepr19$rw_ot, 0.1, na.rm = TRUE)
+ratio9_5 <- quantile(cepr19$rw_ot, 1, na.rm = TRUE)/quantile(cepr19$rw_ot, 0.5, na.rm = TRUE)
+ratio5_1 <- quantile(cepr19$rw_ot, 0.5, na.rm = TRUE)/quantile(cepr19$rw_ot, 0.1, na.rm = TRUE)
+```
+Ratio 9/1: `r ratio9_1`
+Ratio 9/5: `r ratio9_5`
+Ratio 5/1: `r ratio5_1`
+
+### Question 4 – inequality in other countries
+Look at the internationally comparable data on inequality published by the OECD (https://data.oecd.org/inequality/income-inequality.htm) and chose one OECD country that you would like to compare to the US. Report the differences in the Gini coefficients, the P90/P10 ration and the P90/P50 ratio. Briefly discuss what these numbers tell us about the difference in inequality between the two countries.
+
+I have chosen to compare income inequality in the United States to the Slovak Republic. The Gini coefficient of the Slovak Republic is 0.22, the lowest among OECD countries. This is 0.17 less that the Gini coefficient of the United States (0.39)
+
+                          Country
+                United States,   Slovak Republic
+P90/P10 Ratio:        6.2      ,         2.8
+
+P90/P50 Ratio:        2.3      ,         1.6
+
+We can see very clearly that the ratio of income between the 90th and 10th percentile in the United States is much greater than the same ratio in the Slocak Republic. Relative to the 10th percentile, the 90th percentile in the United States has over twice the income as the 90th percentile in the Slovak Republic.
+
+The difference in the P90P50 ratio is less than the 90/10 ratio. We see a greater level of inequality from 90 to 10 than we do from 90 to 50.
+
+
+
+

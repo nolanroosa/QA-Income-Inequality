@@ -4,20 +4,31 @@ author: "Nolan Roosa"
 date: "9/25/2020"
 output: pdf_document
 ---
-
 ```{r setup, include=FALSE}
 library(foreign)
 data = read.dta('cepr_org_2019.dta')
 ```
 
 ## 1) Decide on the variables to include in your specification and justify your decision.
+
+The variables used in the analysis will be education, experience, gender, race, and state. Education will be the number of years that someone has spent in school. Experience will be the number of years someone has spend not gaining education. A dummy variable will represent gender. Another dummy variable will be used for whether or not a person is white. State will be a series of dummy variables to indicate which state a person resides in. Justification for how each of these variables was chosen and coded is expanded upon in the answer to question two.
+
 ## 2) Explain other specification choices you make.
 
-For education I chose to use educ92, education level. When using as.numeric on each variable, educ92 was far more accurate in conveying the number of years each categorical string variable represented. Years of education will be represented by yreduc92 which is calculated by as.numeric(educ92).
+I am going to add another variable isWhite. When regressing wage ~ race, using wbho as race, the output only gives coefficients for being black, hispanic, and other. I want to be able to see the associated impact of being white on wages, as per the assignment.
 
-I am going to add another variable isWhite. When regressing wage ~ race, using wbho as race, the output only gives coefficients for being black, hispanic, and other. I want to be able to see the associated impact of being white on wages. 
+Earnings is represented by rw_ot; this is real wages that include tips, overtime, and other similar benefits. This will be a more accurate measure of wage than a metric that does not include these additional modes of payment.
 
-Earnings is represented by rw_ot; this is real wages. Experience will be a variable calculated by the age of the person, subtracting their education level. I will assume that those years where someone was not in school, they were gaining experience. exp = age - educ92. Female is a binary variable where female = 1 is a woman, female = 0 is a man. Race will be accounted for with wbho. State will be state.
+Experience will be a variable calculated by the age of the person, subtracting their education level. There are two variables in the data set that represent education, educ and educ92. I found that when performing as.numeric on each variable that educ92 provided a much more accurate number of years of education. Variable educ underestimated the number of years of education. I will assume that those years where someone was not in school, they were gaining experience. exp = age - educ92.
+
+Female is a binary variable where female = 1 is a woman, female = 0 is a man. 
+
+State will be represented with state. When regressed this creates a beta coefficient for each state, we can compare the wage differences among states.
+
+Staying with the assignment, I will be using the log of real wages to create a Mincer regression. By doing this we can interpret coefficients as the percent change of real wages associated with our variables of interest.
+
+It is challenging to interpret the coefficients of our test variables when they are in scientific notation. To accomodate this, I will make adjustments to R base settings to ensure that the coefficients are integers.
+
 
 ``` {r}
 library(tidyverse)
@@ -35,36 +46,43 @@ data <- data %>% mutate(exp = as.numeric(age) - as.numeric(educ92)) %>%
 
 ## 3)  Report your estimates and interpret each coefficient. Also submit your point estimates and standard errors on Canvas.
 ```{r}
-earnings <- glm(rw_ot ~ yreduc92 + exp + female + isWhite + state, data = data)
+#Use the glm command and make real wages a log to create mincer regression
+earnings <- glm(log(rw_ot) ~ yreduc92 + exp + female + isWhite + state, data = data)
+
+#settings to not run in scientific notation
+options(scipen=9)
+
+help(options)
 
 summary(earnings)
 ```
-The coefficient for education is 3.275314 with a standard error of 0.018516, for every year increase in education there is an associated 3.28 unit increase in real wages. 
+The coefficient for a year of education is 0.11236992 with a standard error of  0.00054725, for every year increase in education there is an associated 11% increase in real wages. 
 
-Experience has a coefficient of 0.205402 with a standard error of 0.003138. For every year increase in experience there is an associated 0.21 unit increase in real wages. 
+Experience has a coefficient of 0.00724235 with a standard error of 0.00009274. For every year increase in experience there is an associated 0.7% increase in real wages. 
 
-Being a woman has a coefficient of -6.993938 with a standard error of 0.090543. There is an 7 unit loss in real wages associated with being a woman.
+Being a woman has a coefficient of -0.23477603 with a standard error of 0.00267608. There is an 23.4% loss in real wages associated with being a woman.
 
-Being white has a coefficient of 2.227405 with a standard error of 0.105552. Being white is associated with a 2.22 unit increase in real wages.
+Being white has a coefficient of 0.08442333 with a standard error of 0.105552. Being white is associated with a 8.4% increase in real wages.
 
-All of these coefficients are significant at the 1% level. States all have different coefficients, and different standard errors. Some states have coefficients that are not significant. One stand out is the District of Columbia with a coefficient of 12.921622 and standard error of 0.613983. The District likely stands out with a high wage association because of its dense urban population and lack of rural population. Many of the states with lower coefficients are insignificant, leading us to conclude that there is no increase in wage for states such as West Virginia or Montana. This likely reflects a lack in wage premiums that would result from higher costs of living.
+All of these coefficients are significant at the 1% level. States all have different coefficients, and different standard errors. Some states have coefficients that are not significant. One stand out is the District of Columbia with a coefficient of 0.36805168 and standard error of 0.01814688. This is interpreted as a 36.8% wage increase. The District likely stands out with a high wage association because of its dense urban population and lack of rural population. Many of the states with lower coefficients are insignificant, leading us to conclude that there is no increase in wage for states such as West Virginia or Montana. This likely reflects a lack in wage premiums that would result from higher costs of living.
 
 ## 4) Discuss how your estimates for returns to schooling compare with the estimates in the literature.
 
+The literature comes to a strong conclusion on the returns of education on wages. Autor, Goldin, and Katz on page 350 of Extending the Race between Education and Technology claim that in 2017 returns to a year of college is associated with a 0.14 log points gain in wages. This coefficient is similar to the 0.11 log points gain of the regression performed above. The premium for college education clearly displays itself in the CEPR 2019 data. 
 
-The literature comes to a strong conclusion on the returns of education on wages. Autor, Goldin, and Katz on page 350 of Extending the Race between Education and Technology claim that in 2017 returns to a year of college is associated with a 0.14 log points gain in wages. 
+To see this premium even more clearly we can run regression using educ92. This categorical variable output shows the coefficient for achieving each tier of education. The growth in the coefficients as one achieves higher levels of education is indicative of the literature claims that higher education is associated with higher wages. We can see clearly the difference between the coefficients of someone with a bachelors degree (0.81444002) and someone with a doctorate (1.15797350). These coefficients represent a 81.4% and 115.8% increase in real wages, respectively. This agian supports the literature that there is a large premium on college educated workers.
 
-The unit of measure used in the regression analysis above is certainly different, most clearly by the log scale and differences in wage measurement. The regression coefficient for years of education is 3.275314, concluding that every additional year of education is associated with a 3.27 unit increase in real wages. 
-
-The regression can also be ran using educ92. This categorical variable output shows the coefficient for achieving each tier of education. The growth in the coefficients as one achieves higher levels of education is indicative of the literature claims that higher education is associated with higher wages. We can see clearly the difference between the coefficients of someone with a bachelors degree (21.328939) and someone with a doctorate (35.464703).
+Unfortunately the regression columns can not fit on one page due to the length of variable names. The output shows the p-value and significance level after the rest of the regression results. While visually unpleasing, it is still clear which variables are significant and which are not.
 
 ```{r}
-educ_model <- glm(rw_ot ~ educ92 + exp + female + isWhite + state, data = data)
+educ_model <- glm(log(rw_ot) ~ educ92 + exp + female + isWhite + state, data = data)
+options(scipen=9)
 summary(educ_model)
-
 ```
 
 
 ## 5) Describe an omitted variable that would make your schooling results upward biased. Explain why.
 
-An omitted variable that would result in an upward bias in education is parental income. People who are able to pursue college and graduate level degrees are move likely to have parents with higher income levels. Part of the effect that of education in the regression above could be capturing the effect of having parents with high incomes. Those people likely would have succeeded and had high real wages regardless of if they pursued a degree. Omitted variable bias makes it challenging to make conclusions about causality in ordinary least squares regression models.
+An omitted variable that would result in an upward bias in education is parental income. Parental income would likely have a positive association with both real wages and education level. Because both of these are positive association, we are likely to overestimate the impact of education level associated with real wages.
+
+People who are able to pursue college and graduate level degrees are move likely to have parents with higher income levels. Part of the effect that of education in the regression above could be capturing the effect of having parents with high incomes. People with high parental incomes would likely have high real wages regardless of if they pursued a degree. Omitted variable bias makes it challenging to make conclusions about causality in ordinary least squares regression models.
